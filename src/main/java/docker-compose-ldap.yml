@@ -167,8 +167,8 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,SSL://0.0.0.0:29093,BROKER://0.0.0.0:9092,
                       OUTSIDE-PLAIN://0.0.0.0:29094,OUTSIDE-SCRAM://0.0.0.0:29095,OUTSIDE-LDAP://0.0.0.0:29096
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2-external:29092,SSL://kafka-2-external:29093,BROKER://kafka-2:9092,
-                                  OUTSIDE-PLAIN://kafka-2-external:29094,OUTSIDE-SCRAM://kafka-1-external:29095,
-                                  OUTSIDE-LDAP://kafka-1-external:29096
+                                  OUTSIDE-PLAIN://kafka-2-external:29094,OUTSIDE-SCRAM://kafka-2-external:29095,
+                                  OUTSIDE-LDAP://kafka-2-external:29096
       #KAFKA_LISTENERS: SSL://0.0.0.0:29093,BROKER://0.0.0.0:9092
       #KAFKA_ADVERTISED_LISTENERS: SSL://kafka-2-external:29093,BROKER://kafka-2:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,BROKER:SASL_SSL,OUTSIDE-PLAIN:SASL_SSL,
@@ -247,8 +247,8 @@ services:
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:39092,SSL://0.0.0.0:39093,BROKER://0.0.0.0:9092,
                        OUTSIDE-PLAIN://0.0.0.0:39094,OUTSIDE-SCRAM://0.0.0.0:39095,OUTSIDE-LDAP://0.0.0.0:39096
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3-external:39092,SSL://kafka-3-external:39093,BROKER://kafka-3:9092,
-                                  OUTSIDE-PLAIN://kafka-3-external:39094,OUTSIDE-SCRAM://kafka-1-external:39095,
-                                  OUTSIDE-LDAP://kafka-1-external:39096
+                                  OUTSIDE-PLAIN://kafka-3-external:39094,OUTSIDE-SCRAM://kafka-3-external:39095,
+                                  OUTSIDE-LDAP://kafka-3-external:39096
       #KAFKA_LISTENERS: SSL://0.0.0.0:39093,BROKER://0.0.0.0:9092
       #KAFKA_ADVERTISED_LISTENERS: SSL://kafka-3-external:39093,BROKER://kafka-3:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,BROKER:SASL_SSL,OUTSIDE-PLAIN:SASL_SSL,
