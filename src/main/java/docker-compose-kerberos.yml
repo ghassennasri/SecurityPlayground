@@ -77,7 +77,7 @@ services:
     volumes:
       - data-kafka-1:/var/lib/kafka/data
       - ../resources/tls/kafka-1-creds:/etc/kafka/secrets
-      - ../resources/kdc/krb5.conf:/etc/kdc/krb5.conf
+      - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
     environment:
       KAFKA_BROKER_ID: 101
@@ -151,7 +151,7 @@ services:
     volumes:
       - data-kafka-2:/var/lib/kafka/data
       - ../resources/tls/kafka-2-creds:/etc/kafka/secrets
-      - ../resources/kdc/krb5.conf:/etc/kdc/krb5.conf
+      - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
     environment:
       KAFKA_BROKER_ID: 102
@@ -225,7 +225,7 @@ services:
     volumes:
       - data-kafka-3:/var/lib/kafka/data
       - ../resources/tls/kafka-3-creds:/etc/kafka/secrets
-      - ../resources/kdc/krb5.conf:/etc/kdc/krb5.conf
+      - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
     environment:
       KAFKA_BROKER_ID: 103
@@ -287,10 +287,23 @@ services:
    build: ../resources/kdc
    env_file: ../resources/kdc/kerberos.env
    container_name: kdc-server
+   hostname: kdc-server
    volumes:
     - secret:/var/lib/secret
     # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
     - /dev/urandom:/dev/random
+   networks:
+    - confluent
+
+  ubuntu:
+    image: ubuntu:latest
+    container_name: ubuntu
+    hostname: ubuntu
+    command: /bin/bash -c 'while true; do echo testing; sleep 2; done;'
+    volumes:
+      - secret:/var/lib/secret
+    networks:
+      - confluent
 
 
 volumes:
