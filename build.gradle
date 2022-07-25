@@ -18,3 +18,36 @@ dependencies {
 test {
     useJUnitPlatform()
 }
+
+
+dockerCompose {
+    removeContainers = true
+    stopContainers = true
+    waitForTcpPorts = false
+    containerLogToDir = project.file('build/logs')
+    KERBEROSConfig {
+        useComposeFiles = ['./src/main/java/docker-compose-kerberos.yml']
+    }
+    LDAPConfig {
+        useComposeFiles = ['./src/main/java/docker-compose-ldap.yml']
+    }
+}
+task addUsersToKdc(dependsOn:KERBEROSConfigComposeUp) {
+    doLast {
+        exec {
+            executable "docker"
+            args 'exec', '-i', 'kdc-server', 'sh', '-c', '/tmp/kdc-users-init.sh'
+        }
+    }
+}
+def dockerTest(){
+    exec {
+        executable "docker"
+        args "ps" ,"-a"
+    }
+}
+task dockerTestTask {
+    doLast {
+        dockerTest()
+    }
+}

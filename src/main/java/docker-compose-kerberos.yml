@@ -11,7 +11,8 @@ services:
       - data-zk-log-1:/var/lib/zookeeper/log
       - data-zk-data-1:/var/lib/zookeeper/data
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.5
     environment:
       - ZOOKEEPER_SERVER_ID=1
       - ZOOKEEPER_CLIENT_PORT=12181
@@ -32,7 +33,8 @@ services:
       - data-zk-log-2:/var/lib/zookeeper/log
       - data-zk-data-2:/var/lib/zookeeper/data
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.6
     environment:
       - ZOOKEEPER_SERVER_ID=2
       - ZOOKEEPER_CLIENT_PORT=22181
@@ -53,7 +55,8 @@ services:
       - data-zk-log-3:/var/lib/zookeeper/log
       - data-zk-data-3:/var/lib/zookeeper/data
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.7
     environment:
       - ZOOKEEPER_SERVER_ID=3
       - ZOOKEEPER_CLIENT_PORT=32181
@@ -62,6 +65,23 @@ services:
       - ZOOKEEPER_SYNC_LIMIT=2
       - ZOOKEEPER_SERVERS=zk-1:2888:3888;zk-2:2888:3888;zk-3:2888:3888
       - ZOOKEEPER_SASL_ENABLED="false"
+
+  client:
+    image: confluentinc/cp-kafka:latest
+    container_name: client
+    hostname: client
+    networks:
+      confluent:
+        ipv4_address: 172.28.0.11
+    extra_hosts:
+      - "kafka-1-external:172.28.0.8"
+      - "kafka-2-external:172.28.0.9"
+      - "kafka-3-external:172.28.0.10"
+    volumes:
+      - ../resources/kdc/krb5.conf:/etc/krb5.conf
+      - secret:/var/lib/secret
+      - ../resources/client:/tmp/client
+    command: /bin/bash -c 'while true; do echo testing; sleep 2; done;'
 
   kafka-1:
     image: confluentinc/cp-server:6.1.0-1-ubi8
@@ -73,12 +93,14 @@ services:
     ports:
       - "19092-19099:19092-19099"
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.8
     volumes:
       - data-kafka-1:/var/lib/kafka/data
       - ../resources/tls/kafka-1-creds:/etc/kafka/secrets
       - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
+      - ../resources/kdc/brokers/broker1.sasl.jaas.config:/etc/kafka/broker1.sasl.jaas.config
     environment:
       KAFKA_BROKER_ID: 101
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181,zk-2:22181,zk-3:32181
@@ -86,7 +108,9 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_OPTS: -Djava.security.krb5.conf=/etc/krb5.conf
+                  -Djava.security.auth.login.config=/etc/kafka/broker1.sasl.jaas.config
                   -Dsun.security.krb5.debug=true
+                  -Dsun.security.krb5.debug
       #KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
       #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:19092,SSL://0.0.0.0:19093,BROKER://0.0.0.0:9092,
@@ -103,7 +127,7 @@ services:
       KAFKA_SSL_KEY_CREDENTIALS: kafka-1_sslkey_creds
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.kafka-1.truststore.pkcs12
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_PASSWORD: confluent
-      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
@@ -131,10 +155,10 @@ services:
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_ENABLED_MECHANISMS: GSSAPI
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG:  "com.sun.security.auth.module.Krb5LoginModule required \
-        useKeyTab=true \
-        storeKey=true \
-        keyTab=\"/var/lib/secret/kafka-admin.key\" \
-        principal=\"admin@TEST.CONFLUENT.IO\";"
+                                                                      useKeyTab=true \
+                                                                      storeKey=true \
+                                                                      keyTab=\"/var/lib/secret/kafka-admin.key\" \
+                                                                      principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
 
 
   kafka-2:
@@ -147,12 +171,14 @@ services:
     ports:
       - "29092-29099:29092-29099"
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.9
     volumes:
       - data-kafka-2:/var/lib/kafka/data
       - ../resources/tls/kafka-2-creds:/etc/kafka/secrets
       - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
+      - ../resources/kdc/brokers/broker2.sasl.jaas.config:/etc/kafka/broker2.sasl.jaas.config
     environment:
       KAFKA_BROKER_ID: 102
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181,zk-2:22181,zk-3:32181
@@ -160,7 +186,9 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_OPTS: -Djava.security.krb5.conf=/etc/krb5.conf
+                  -Djava.security.auth.login.config=/etc/kafka/broker2.sasl.jaas.config
                   -Dsun.security.krb5.debug=true
+                  -Dsun.security.krb5.debug
       #KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
       #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,SSL://0.0.0.0:29093,BROKER://0.0.0.0:9092,
@@ -177,7 +205,7 @@ services:
       KAFKA_SSL_KEY_CREDENTIALS: kafka-2_sslkey_creds
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.kafka-2.truststore.pkcs12
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_PASSWORD: confluent
-      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
@@ -208,7 +236,7 @@ services:
               useKeyTab=true \
               storeKey=true \
               keyTab=\"/var/lib/secret/kafka-admin.key\" \
-              principal=\"admin@TEST.CONFLUENT.IO\";"
+               principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
 
 
   kafka-3:
@@ -221,12 +249,14 @@ services:
     ports:
     - "39092-39099:39092-39099"
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.10
     volumes:
       - data-kafka-3:/var/lib/kafka/data
       - ../resources/tls/kafka-3-creds:/etc/kafka/secrets
       - ../resources/kdc/krb5.conf:/etc/krb5.conf
       - secret:/var/lib/secret
+      - ../resources/kdc/brokers/broker2.sasl.jaas.config:/etc/kafka/broker2.sasl.jaas.config
     environment:
       KAFKA_BROKER_ID: 103
       KAFKA_ZOOKEEPER_CONNECT: zk-1:12181,zk-2:22181,zk-3:32181
@@ -234,7 +264,9 @@ services:
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_OPTS: -Djava.security.krb5.conf=/etc/krb5.conf
+                  -Djava.security.auth.login.config=/etc/kafka/broker2.sasl.jaas.config
                   -Dsun.security.krb5.debug=true
+                  -Dsun.security.krb5.debug
       #KAFKA_METRIC_REPORTERS: "io.confluent.metrics.reporter.ConfluentMetricsReporter"
       #CONFLUENT_METRICS_REPORTER_BOOTSTRAP_SERVERS: "kafka-1:9092,kafka-2:9092,kafka-3:9092"
       KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:39092,SSL://0.0.0.0:39093,BROKER://0.0.0.0:9092,
@@ -251,7 +283,7 @@ services:
       KAFKA_SSL_KEY_CREDENTIALS: kafka-3_sslkey_creds
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_LOCATION: /etc/kafka/secrets/kafka.kafka-3.truststore.pkcs12
       KAFKA_LISTENER_NAME_BROKER_SSL_TRUSTSTORE_PASSWORD: confluent
-      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: "HTTPS"
+      KAFKA_LISTENER_NAME_BROKER_SSL_ENDPOINT_IDENTIFICATION_ALGORITHM: ""
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
@@ -282,7 +314,7 @@ services:
                     useKeyTab=true \
                     storeKey=true \
                     keyTab=\"/var/lib/secret/kafka-admin.key\" \
-                    principal=\"admin@TEST.CONFLUENT.IO\";"
+                     principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
   kdc-kadmin:
    build: ../resources/kdc
    env_file: ../resources/kdc/kerberos.env
@@ -293,7 +325,8 @@ services:
     # This is needed otherwise there won't be enough entropy to generate a new kerberos realm
     - /dev/urandom:/dev/random
    networks:
-    - confluent
+     confluent:
+       ipv4_address: 172.28.0.12
 
   ubuntu:
     image: ubuntu:latest
@@ -303,7 +336,8 @@ services:
     volumes:
       - secret:/var/lib/secret
     networks:
-      - confluent
+      confluent:
+        ipv4_address: 172.28.0.13
 
 
 volumes:
@@ -320,3 +354,7 @@ volumes:
 
 networks:
   confluent:
+    driver: bridge
+    ipam:
+     config:
+      - subnet: 172.28.0.0/24
