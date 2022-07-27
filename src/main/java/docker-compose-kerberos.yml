@@ -67,9 +67,11 @@ services:
       - ZOOKEEPER_SASL_ENABLED="false"
 
   client:
-    image: confluentinc/cp-kafka:latest
-    container_name: client
-    hostname: client
+    image: confluentinc/cp-server:latest
+    container_name: kafka_producer
+    hostname: kafka_producer
+    ports:
+      - "8000:8000"
     networks:
       confluent:
         ipv4_address: 172.28.0.11
@@ -84,7 +86,7 @@ services:
     command: /bin/bash -c 'while true; do echo testing; sleep 2; done;'
 
   kafka-1:
-    image: confluentinc/cp-server:6.1.0-1-ubi8
+    image: confluentinc/cp-server:latest
     restart: always
     container_name: kafka-1
     hostname: kafka-1
@@ -118,9 +120,8 @@ services:
                                   OUTSIDE-PLAIN://0.0.0.0:19094,OUTSIDE-SCRAM://0.0.0.0:19095,OUTSIDE-GSSAPI://0.0.0.0:19096
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-1-external:19092,SSL://kafka-1-external:19093,BROKER://kafka-1:9092,
                                   OUTSIDE-PLAIN://kafka-1-external:19094,OUTSIDE-SCRAM://kafka-1-external:19095,
-                                  OUTSIDE-GSSAPI://kafka-1-external:19096
-      #KAFKA_LISTENERS: SSL://0.0.0.0:19093,BROKER://0.0.0.0:9092
-      #KAFKA_ADVERTISED_LISTENERS: SSL://kafka-1-external:19093,BROKER://kafka-1:9092
+                                  OUTSIDE-GSSAPI://kafka-1:19096
+
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,BROKER:SASL_SSL,OUTSIDE-PLAIN:SASL_SSL,
                                             OUTSIDE-SCRAM:SASL_SSL,OUTSIDE-GSSAPI:SASL_PLAINTEXT
       KAFKA_SSL_KEYSTORE_FILENAME: kafka.kafka-1.keystore.pkcs12
@@ -132,12 +133,12 @@ services:
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: PLAIN
-      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: GSSAPI
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: GSSAPI
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      #KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: User:admin;User:kafka;User:schemaregistry;User:connect;User:controlcenter;User:ksqldb
       KAFKA_LISTENER_NAME_OUTSIDE___PLAIN_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_LISTENER_NAME_OUTSIDE___PLAIN_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
                                                          username="admin" \
@@ -149,21 +150,26 @@ services:
                                                          username="admin"
                                                          password="admin-secret";
       KAFKA_LISTENER_NAME_OUTSIDE___SCRAM_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
-      KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
+            useKeyTab=true \
+            keyTab=\"/var/lib/secret/broker1.key\" \
+            storeKey=true \
+            useTicketCache=false \
+            serviceName=\"kafka\" \
+            principal=\"kafka/kafka-1@TEST.CONFLUENT.IO\";"
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_ENABLED_MECHANISMS: GSSAPI
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG:  "com.sun.security.auth.module.Krb5LoginModule required \
-                                                                      useKeyTab=true \
-                                                                      storeKey=true \
-                                                                      keyTab=\"/var/lib/secret/kafka-admin.key\" \
-                                                                      principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
+            useKeyTab=true \
+            keyTab=\"/var/lib/secret/broker1.key\" \
+            storeKey=true \
+            useTicketCache=false \
+            serviceName=\"kafka\" \
+            principal=\"kafka/kafka-1@TEST.CONFLUENT.IO\";"
 
 
   kafka-2:
-    image: confluentinc/cp-server:6.1.0-1-ubi8
+    image: confluentinc/cp-server:latest
     restart: always
     container_name: kafka-2
     depends_on:
@@ -196,7 +202,7 @@ services:
                       OUTSIDE-PLAIN://0.0.0.0:29094,OUTSIDE-SCRAM://0.0.0.0:29095,OUTSIDE-GSSAPI://0.0.0.0:29096
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-2-external:29092,SSL://kafka-2-external:29093,BROKER://kafka-2:9092,
                                   OUTSIDE-PLAIN://kafka-2-external:29094,OUTSIDE-SCRAM://kafka-1-external:29095,
-                                  OUTSIDE-GSSAPI://kafka-2-external:29096
+                                  OUTSIDE-GSSAPI://kafka-2:29096
       #KAFKA_LISTENERS: SSL://0.0.0.0:29093,BROKER://0.0.0.0:9092
       #KAFKA_ADVERTISED_LISTENERS: SSL://kafka-2-external:29093,BROKER://kafka-2:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,BROKER:SASL_SSL,OUTSIDE-PLAIN:SASL_SSL,
@@ -210,12 +216,13 @@ services:
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
-      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: PLAIN
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: GSSAPI
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: GSSAPI
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      #KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: User:admin;User:kafka;User:schemaregistry;User:connect;User:controlcenter;User:ksqldb
+
       KAFKA_LISTENER_NAME_OUTSIDE___PLAIN_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
                                                           username="admin" \
                                                           password="admin-secret" \
@@ -227,21 +234,26 @@ services:
                                                                             username="admin"
                                                                             password="admin-secret";
       KAFKA_LISTENER_NAME_OUTSIDE___SCRAM_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
-      KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
+                  useKeyTab=true \
+                  keyTab=\"/var/lib/secret/broker2.key\" \
+                  storeKey=true \
+                  useTicketCache=false \
+                  serviceName=\"kafka\" \
+                  principal=\"kafka/kafka-2@TEST.CONFLUENT.IO\";"
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_ENABLED_MECHANISMS: GSSAPI
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
-              useKeyTab=true \
-              storeKey=true \
-              keyTab=\"/var/lib/secret/kafka-admin.key\" \
-               principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
+            useKeyTab=true \
+            keyTab=\"/var/lib/secret/broker1.key\" \
+            storeKey=true \
+            useTicketCache=false \
+            serviceName=\"kafka\" \
+            principal=\"kafka/kafka-2@TEST.CONFLUENT.IO\";"
 
 
   kafka-3:
-    image: confluentinc/cp-server:6.1.0-1-ubi8
+    image: confluentinc/cp-server:latest
     restart: always
     container_name: kafka-3
     depends_on:
@@ -274,7 +286,7 @@ services:
                        OUTSIDE-PLAIN://0.0.0.0:39094,OUTSIDE-SCRAM://0.0.0.0:39095,OUTSIDE-GSSAPI://0.0.0.0:39096
       KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-3-external:39092,SSL://kafka-3-external:39093,BROKER://kafka-3:9092,
                                   OUTSIDE-PLAIN://kafka-3-external:39094,OUTSIDE-SCRAM://kafka-1-external:39095,
-                                  OUTSIDE-GSSAPI://kafka-3-external:39096
+                                  OUTSIDE-GSSAPI://kafka-3:39096
       #KAFKA_LISTENERS: SSL://0.0.0.0:39093,BROKER://0.0.0.0:9092
       #KAFKA_ADVERTISED_LISTENERS: SSL://kafka-3-external:39093,BROKER://kafka-3:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,SSL:SSL,BROKER:SASL_SSL,OUTSIDE-PLAIN:SASL_SSL,
@@ -288,12 +300,13 @@ services:
       KAFKA_LISTENER_NAME_BROKER_SSL_CLIENT_AUTH: "required"
       KAFKA_INTER_BROKER_LISTENER_NAME: BROKER
 
-      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
-      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: PLAIN
-      KAFKA_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: GSSAPI
+      KAFKA_LISTENER_NAME_BROKER_SASL_ENABLED_MECHANISMS: GSSAPI
+      KAFKA_AUTHORIZER_CLASS_NAME: kafka.security.authorizer.AclAuthorizer
+      #KAFKA_ZOOKEEPER_SET_ACL: "true"
+      KAFKA_ALLOW_EVERYONE_IF_NO_ACL_FOUND: "false"
+      KAFKA_SUPER_USERS: User:admin;User:kafka;User:schemaregistry;User:connect;User:controlcenter;User:ksqldb
+
       KAFKA_LISTENER_NAME_OUTSIDE___PLAIN_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
                                                           username="admin" \
                                                           password="admin-secret" \
@@ -305,17 +318,22 @@ services:
         username="admin"
         password="admin-secret";
       KAFKA_LISTENER_NAME_OUTSIDE___SCRAM_SASL_ENABLED_MECHANISMS: SCRAM-SHA-256
-      KAFKA_LISTENER_NAME_BROKER_PLAIN_SASL_JAAS_CONFIG: org.apache.kafka.common.security.plain.PlainLoginModule required \
-        username="admin" \
-        password="admin-secret" \
-        user_admin="admin-secret";
+      KAFKA_LISTENER_NAME_BROKER_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
+                  useKeyTab=true \
+                  keyTab=\"/var/lib/secret/broker3.key\" \
+                  storeKey=true \
+                  useTicketCache=false \
+                  serviceName=\"kafka\" \
+                  principal=\"kafka/kafka-3@TEST.CONFLUENT.IO\";"
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_ENABLED_MECHANISMS: GSSAPI
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
-                    useKeyTab=true \
-                    storeKey=true \
-                    keyTab=\"/var/lib/secret/kafka-admin.key\" \
-                     principal=\"admin/for-kafka@TEST.CONFLUENT.IO\";"
+            useKeyTab=true \
+            keyTab=\"/var/lib/secret/broker1.key\" \
+            storeKey=true \
+            useTicketCache=false \
+            serviceName=\"kafka\" \
+            principal=\"kafka/kafka-3@TEST.CONFLUENT.IO\";"
   kdc-kadmin:
    build: ../resources/kdc
    env_file: ../resources/kdc/kerberos.env

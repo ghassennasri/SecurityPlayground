@@ -2,12 +2,12 @@
 kadmin.local -w password -q "modprinc -maxrenewlife 11days +allow_renewable kadmin/TEST.CONFLUENT.IO"  > /dev/null
 ### Create the required identities:
 # Kafka service principal:
-kadmin.local -w password -q "add_principal -randkey kafka/broker1.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
-kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/broker1.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
-kadmin.local -w password -q "add_principal -randkey kafka/broker2.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
-kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/broker2.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
-kadmin.local -w password -q "add_principal -randkey kafka/broker3.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
-kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/broker3.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "add_principal -randkey kafka/kafka-1@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/kafka-1@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "add_principal -randkey kafka/kafka-2@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/kafka-2@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "add_principal -randkey kafka/kafka-3@TEST.CONFLUENT.IO"  > /dev/null
+kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable kafka/kafka-3@TEST.CONFLUENT.IO"  > /dev/null
 # Zookeeper service principal:
 kadmin.local -w password -q "add_principal -randkey zookeeper/zookeeper.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
 kadmin.local -w password -q "modprinc -maxlife 11days -maxrenewlife 11days +allow_renewable zookeeper/zookeeper.kerberos-demo.local@TEST.CONFLUENT.IO"  > /dev/null
@@ -49,9 +49,9 @@ rm -f /var/lib/secret/kafka-connect.key 2>&1 > /dev/null
 rm -f /var/lib/secret/kafka-schemaregistry.key 2>&1 > /dev/null
 rm -f /var/lib/secret/kafka-ksqldb.key 2>&1 > /dev/null
 rm -f /var/lib/secret/kafka-controlcenter.key 2>&1 > /dev/null
-kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker1.key -norandkey kafka/broker.kerberos-demo.local@TEST.CONFLUENT.IO " > /dev/null
-kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker2.key -norandkey kafka/broker2.kerberos-demo.local@TEST.CONFLUENT.IO " > /dev/null
-kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker3.key -norandkey kafka/broker2.kerberos-demo.local@TEST.CONFLUENT.IO " > /dev/null
+kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker1.key -norandkey kafka/kafka-1@TEST.CONFLUENT.IO " > /dev/null
+kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker2.key -norandkey kafka/kafka-2@TEST.CONFLUENT.IO " > /dev/null
+kadmin.local -w password -q "ktadd  -k /var/lib/secret/broker3.key -norandkey kafka/kafka-3@TEST.CONFLUENT.IO " > /dev/null
 kadmin.local -w password -q "ktadd  -k /var/lib/secret/zookeeper.key -norandkey zookeeper/zookeeper.kerberos-demo.local@TEST.CONFLUENT.IO " > /dev/null
 kadmin.local -w password -q "ktadd  -k /var/lib/secret/zookeeper-client.key -norandkey zkclient@TEST.CONFLUENT.IO " > /dev/null
 kadmin.local -w password -q "ktadd  -k /var/lib/secret/kafka-client.key -norandkey kafka_producer@TEST.CONFLUENT.IO " > /dev/null

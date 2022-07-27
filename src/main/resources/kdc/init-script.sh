@@ -23,6 +23,14 @@ tee /etc/krb5.conf <<EOF
 		kdc = $KDC_KADMIN_SERVER
 		admin_server = $KDC_KADMIN_SERVER
 	}
+[domain_realm]
+   kafka-1=TEST.CONFLUENT.IO
+   kafka-1-external=TEST.CONFLUENT.IO
+   kafka-2=TEST.CONFLUENT.IO
+   kafka-2-external=TEST.CONFLUENT.IO
+   kafka-3=TEST.CONFLUENT.IO
+   kafka-3-external=TEST.CONFLUENT.IO
+   kafka_producer=TEST.CONFLUENT.IO
 EOF
 echo ""
 
