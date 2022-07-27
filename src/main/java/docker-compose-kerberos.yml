@@ -245,7 +245,7 @@ services:
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
             useKeyTab=true \
-            keyTab=\"/var/lib/secret/broker1.key\" \
+            keyTab=\"/var/lib/secret/broker2.key\" \
             storeKey=true \
             useTicketCache=false \
             serviceName=\"kafka\" \
@@ -329,7 +329,7 @@ services:
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_SASL_KERBEROS_SERVICE_NAME: kafka
       KAFKA_LISTENER_NAME_OUTSIDE___GSSAPI_GSSAPI_SASL_JAAS_CONFIG: "com.sun.security.auth.module.Krb5LoginModule required \
             useKeyTab=true \
-            keyTab=\"/var/lib/secret/broker1.key\" \
+            keyTab=\"/var/lib/secret/broker3.key\" \
             storeKey=true \
             useTicketCache=false \
             serviceName=\"kafka\" \
