@@ -9,7 +9,7 @@ req_extensions = v3_req
 countryName = US
 organizationName = CONFLUENT
 localityName = MountainView
-commonName=kafka-3
+commonName=training
 
 [ v3_ca ]
 subjectKeyIdentifier=hash
@@ -23,8 +23,3 @@ basicConstraints = CA:FALSE
 nsComment = "OpenSSL Generated Certificate"
 keyUsage = critical, digitalSignature, keyEncipherment
 extendedKeyUsage = serverAuth, clientAuth
-subjectAltName = @alt_names
-
-[ alt_names ]
-DNS.1=kafka-3
-DNS.2=kafka-3-external

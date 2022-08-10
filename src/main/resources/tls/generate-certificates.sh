@@ -1,8 +1,21 @@
 #!/bin/bash
-for i in kafka-3
+# Cleanup files
+find . \( -type f -name "*.key" -o -name "*.crt" -o -name "*.csr" -o -name "*.pem" -o -name "*.p12" -o -name "*.pkcs12" -o -name "*_creds" \)  -delete
+# Create Certification Authority  (CA) key & certificate
+openssl req -new -nodes \
+   -x509 \
+   -days 365 \
+   -newkey rsa:2048 \
+   -keyout ca.key \
+   -out ca.crt \
+   -config ca.cnf
+
+# Convert CA key to pem format
+cat ca.crt ca.key > ca.pem
+
+for i in kafka-1 kafka-2 kafka-3 client
 do
 	echo "------------------------------- $i -------------------------------"
-
     # Create server key & certificate signing request(.csr file)
     openssl req -new \
     -newkey rsa:2048 \
@@ -42,8 +55,19 @@ do
     -noprompt \
     -srcstorepass confluent
 
+    # Import the CA cert into the truststore
+    keytool -keystore ./$i-creds/kafka.$i.truststore.pkcs12 \
+        -alias CARoot \
+        -import \
+        -file ./ca.crt \
+        -storepass confluent  \
+        -noprompt \
+        -storetype PKCS12
+
     # Save creds
     echo "confluent" > ${i}-creds/${i}_sslkey_creds
     echo "confluent" > ${i}-creds/${i}_keystore_creds
+  	echo "confluent" > ${i}-creds/${i}_truststore_creds
 
 done
+cp -r client-creds /tmp/client-creds

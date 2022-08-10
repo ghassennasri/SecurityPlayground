@@ -26,10 +26,14 @@ dockerCompose {
     waitForTcpPorts = false
     containerLogToDir = project.file('build/logs')
     KERBEROSConfig {
-        useComposeFiles = ['./src/main/java/docker-compose-kerberos.yml']
+
+        useComposeFiles = ['/src/main/resources/docker-compose/docker-compose-kerberos.yml']
     }
     LDAPConfig {
-        useComposeFiles = ['./src/main/java/docker-compose-ldap.yml']
+        useComposeFiles = ['/src/main/resources/docker-compose/docker-compose-ldap.yml']
+    }
+    mTLSConfig {
+        useComposeFiles = ['./src/main/resources/docker-compose/docker-compose-mTls-Plain-SCRAM.yml']
     }
 }
 task addUsersToKdc(dependsOn:KERBEROSConfigComposeUp) {
@@ -40,6 +44,38 @@ task addUsersToKdc(dependsOn:KERBEROSConfigComposeUp) {
         }
     }
 }
+task generateCertificates(){
+    doLast{
+        exec {
+            workingDir './src/main/resources/tls'
+            commandLine './generate-certificates.sh'
+        }
+    }
+}
+task updateLocalDNSEntries(){
+    doLast{
+        exec {
+            executable "sh"
+            args "-c","echo", "\"\$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kafka-1) kafka-1-external\" | sudo tee -a /etc/hosts"
+        }
+        exec {
+            executable "sh"
+            args "-c","echo", "\"\$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kafka-2) kafka-2-external\" | sudo tee -a /etc/hosts"
+        }exec {
+            executable "sh"
+            args "-c","echo", "\"\$(docker inspect -f '{{range.NetworkSettings.Networks}}{{.IPAddress}}{{end}}' kafka-3) kafka-3-external\" | sudo tee -a /etc/hosts"
+        }
+    }
+}
+task addSCRAMAdminUser(dependsOn: mTLSConfigComposeUp){
+    doLast {
+        exec {
+            executable "docker"
+            args 'exec', '-i', 'kafka-1', 'sh', '-c', 'kafka-configs --bootstrap-server localhost:19092 --alter --add-config \'SCRAM-SHA-256=[password=admin-secret],SCRAM-SHA-512=[password=admin-secret]\' --entity-type users --entity-name admin'
+        }
+    }
+}
+mTLSConfigComposeUp.dependsOn(generateCertificates)
 def dockerTest(){
     exec {
         executable "docker"
@@ -49,5 +85,24 @@ def dockerTest(){
 task dockerTestTask {
     doLast {
         dockerTest()
+        def webInfo =dockerCompose.servicesInfos.kafka-1
+        print webInfo
     }
+}
+
+repositories {
+    mavenCentral()
+
+    maven {
+        url "https://packages.confluent.io/maven"
+    }
+}
+dependencies {
+    implementation "org.slf4j:slf4j-simple:1.7.36"
+    // https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients
+    implementation group: 'org.apache.kafka', name: 'kafka-clients', version: '3.2.1'
+
+    implementation group: "io.confluent", name: "monitoring-interceptors", version: '6.0.0'
+    implementation group: 'org.slf4j', name: 'slf4j-log4j12', version: '1.7.30'
+
 }
